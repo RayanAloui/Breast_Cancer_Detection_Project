@@ -1,0 +1,404 @@
+{% extends "base.html" %}
+
+{% block title %}Tumor Feature Analysis - Breast Cancer Diagnostic Portal{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item active">Tumor Feature Analysis</li>
+            </ol>
+        </nav>
+        <h2 class="mb-0"><i class="bi bi-graph-up text-info me-2"></i>Tumor Feature Analysis</h2>
+        <p class="text-muted">Enter tumor measurement data for comprehensive breast cancer diagnosis</p>
+    </div>
+</div>
+
+{% if not model_loaded %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    <strong>Model Not Loaded:</strong> Please <a href="{{ url_for('upload_models_page') }}">upload the tumor features model</a> before running analysis.
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Tumor Measurements</h5>
+            </div>
+            <div class="card-body">
+                <form id="tumorForm">
+                    <!-- Add above the form -->
+<div class="card bg-light mb-3">
+    <div class="card-body">
+        <h6><i class="bi bi-lightbulb me-2"></i>Quick Start</h6>
+        <button type="button" class="btn btn-sm btn-outline-success me-2" onclick="loadSampleData('typical_benign')">
+            <i class="bi bi-plus-circle"></i> Typical Benign
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-danger me-2" onclick="loadSampleData('typical_malignant')">
+            <i class="bi bi-plus-circle"></i> Typical Malignant
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-info" onclick="loadSampleData('borderline')">
+            <i class="bi bi-plus-circle"></i> Borderline Case
+        </button>
+    </div>
+</div>
+                    <ul class="nav nav-tabs mb-3" id="featureTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="mean-tab" data-bs-toggle="tab" data-bs-target="#mean" type="button">Mean Values</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="se-tab" data-bs-toggle="tab" data-bs-target="#se" type="button">Standard Error</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="worst-tab" data-bs-toggle="tab" data-bs-target="#worst" type="button">Worst Values</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="featureTabsContent">
+                        <div class="tab-pane fade show active" id="mean" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label for="radius_mean" class="form-label">Radius Mean</label>
+                                    <input type="number" class="form-control" id="radius_mean" name="radius_mean" step="0.001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="texture_mean" class="form-label">Texture Mean</label>
+                                    <input type="number" class="form-control" id="texture_mean" name="texture_mean" step="0.001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="perimeter_mean" class="form-label">Perimeter Mean</label>
+                                    <input type="number" class="form-control" id="perimeter_mean" name="perimeter_mean" step="0.001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="area_mean" class="form-label">Area Mean</label>
+                                    <input type="number" class="form-control" id="area_mean" name="area_mean" step="0.001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="smoothness_mean" class="form-label">Smoothness Mean</label>
+                                    <input type="number" class="form-control" id="smoothness_mean" name="smoothness_mean" step="0.00001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="compactness_mean" class="form-label">Compactness Mean</label>
+                                    <input type="number" class="form-control" id="compactness_mean" name="compactness_mean" step="0.00001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="concavity_mean" class="form-label">Concavity Mean</label>
+                                    <input type="number" class="form-control" id="concavity_mean" name="concavity_mean" step="0.00001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="concave_points_mean" class="form-label">Concave Points Mean</label>
+                                    <input type="number" class="form-control" id="concave_points_mean" name="concave_points_mean" step="0.00001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="symmetry_mean" class="form-label">Symmetry Mean</label>
+                                    <input type="number" class="form-control" id="symmetry_mean" name="symmetry_mean" step="0.00001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="fractal_dimension_mean" class="form-label">Fractal Dimension Mean</label>
+                                    <input type="number" class="form-control" id="fractal_dimension_mean" name="fractal_dimension_mean" step="0.00001" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="se" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label for="radius_se" class="form-label">Radius SE</label>
+                                    <input type="number" class="form-control" id="radius_se" name="radius_se" step="0.001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="texture_se" class="form-label">Texture SE</label>
+                                    <input type="number" class="form-control" id="texture_se" name="texture_se" step="0.001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="perimeter_se" class="form-label">Perimeter SE</label>
+                                    <input type="number" class="form-control" id="perimeter_se" name="perimeter_se" step="0.001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="area_se" class="form-label">Area SE</label>
+                                    <input type="number" class="form-control" id="area_se" name="area_se" step="0.001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="smoothness_se" class="form-label">Smoothness SE</label>
+                                    <input type="number" class="form-control" id="smoothness_se" name="smoothness_se" step="0.00001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="compactness_se" class="form-label">Compactness SE</label>
+                                    <input type="number" class="form-control" id="compactness_se" name="compactness_se" step="0.00001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="concavity_se" class="form-label">Concavity SE</label>
+                                    <input type="number" class="form-control" id="concavity_se" name="concavity_se" step="0.00001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="concave_points_se" class="form-label">Concave Points SE</label>
+                                    <input type="number" class="form-control" id="concave_points_se" name="concave_points_se" step="0.00001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="symmetry_se" class="form-label">Symmetry SE</label>
+                                    <input type="number" class="form-control" id="symmetry_se" name="symmetry_se" step="0.00001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="fractal_dimension_se" class="form-label">Fractal Dimension SE</label>
+                                    <input type="number" class="form-control" id="fractal_dimension_se" name="fractal_dimension_se" step="0.00001" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="worst" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label for="radius_worst" class="form-label">Radius Worst</label>
+                                    <input type="number" class="form-control" id="radius_worst" name="radius_worst" step="0.001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="texture_worst" class="form-label">Texture Worst</label>
+                                    <input type="number" class="form-control" id="texture_worst" name="texture_worst" step="0.001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="perimeter_worst" class="form-label">Perimeter Worst</label>
+                                    <input type="number" class="form-control" id="perimeter_worst" name="perimeter_worst" step="0.001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="area_worst" class="form-label">Area Worst</label>
+                                    <input type="number" class="form-control" id="area_worst" name="area_worst" step="0.001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="smoothness_worst" class="form-label">Smoothness Worst</label>
+                                    <input type="number" class="form-control" id="smoothness_worst" name="smoothness_worst" step="0.00001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="compactness_worst" class="form-label">Compactness Worst</label>
+                                    <input type="number" class="form-control" id="compactness_worst" name="compactness_worst" step="0.00001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="concavity_worst" class="form-label">Concavity Worst</label>
+                                    <input type="number" class="form-control" id="concavity_worst" name="concavity_worst" step="0.00001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="concave_points_worst" class="form-label">Concave Points Worst</label>
+                                    <input type="number" class="form-control" id="concave_points_worst" name="concave_points_worst" step="0.00001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="symmetry_worst" class="form-label">Symmetry Worst</label>
+                                    <input type="number" class="form-control" id="symmetry_worst" name="symmetry_worst" step="0.00001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="fractal_dimension_worst" class="form-label">Fractal Dimension Worst</label>
+                                    <input type="number" class="form-control" id="fractal_dimension_worst" name="fractal_dimension_worst" step="0.00001" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-info text-white" id="analyzeBtn">
+                            <i class="bi bi-cpu me-1"></i>Analyze Features
+                        </button>
+                        <button type="reset" class="btn btn-outline-secondary ms-2">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Form
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-clipboard-data me-2"></i>Analysis Results</h5>
+            </div>
+            <div class="card-body">
+                <div id="resultsPlaceholder" class="text-center py-5 text-muted">
+                    <i class="bi bi-hourglass display-4"></i>
+                    <p class="mt-2">Enter tumor features to see analysis results</p>
+                </div>
+                <div id="resultsContent" class="d-none">
+                    <div class="result-badge text-center mb-4">
+                        <span id="resultBadge" class="badge fs-4 px-4 py-2"></span>
+                    </div>
+                    <div class="confidence-section mb-4">
+                        <h6>Confidence Level</h6>
+                        <div class="progress" style="height: 25px;">
+                            <div id="confidenceBar" class="progress-bar" role="progressbar"></div>
+                        </div>
+                        <small class="text-muted" id="confidenceText"></small>
+                    </div>
+                    <div class="probabilities">
+                        <h6>Probability Distribution</h6>
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="p-3 bg-success-subtle rounded text-center">
+                                    <h4 id="benignProb" class="text-success mb-0"></h4>
+                                    <small class="text-muted">Benign</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 bg-danger-subtle rounded text-center">
+                                    <h4 id="malignantProb" class="text-danger mb-0"></h4>
+                                    <small class="text-muted">Malignant</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="loadingSpinner" class="text-center py-5 d-none">
+                    <div class="spinner-border text-info" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Analyzing features...</p>
+                </div>
+                <div id="errorMessage" class="alert alert-danger d-none"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Sample data for common cases
+const sampleCases = {
+    typical_malignant: {
+        // M row data (first line)
+        radius_mean: 19.81,
+        texture_mean: 22.15,
+        perimeter_mean: 130.0,
+        area_mean: 1260.0,
+        smoothness_mean: 0.09831,
+        compactness_mean: 0.1027,
+        concavity_mean: 0.1479,
+        concave_points_mean: 0.09498,
+        symmetry_mean: 0.1582,
+        fractal_dimension_mean: 0.05395,
+        radius_se: 0.7582,
+        texture_se: 1.017,
+        perimeter_se: 5.865,
+        area_se: 112.4,
+        smoothness_se: 0.006494,
+        compactness_se: 0.01893,
+        concavity_se: 0.03391,
+        concave_points_se: 0.01521,
+        symmetry_se: 0.01356,
+        fractal_dimension_se: 0.001997,
+        radius_worst: 27.32,
+        texture_worst: 30.88,
+        perimeter_worst: 186.8,
+        area_worst: 2398.0,
+        smoothness_worst: 0.1512,
+        compactness_worst: 0.315,
+        concavity_worst: 0.5372,
+        concave_points_worst: 0.2388,
+        symmetry_worst: 0.2768,
+        fractal_dimension_worst: 0.07615
+    },
+    typical_benign: {
+        // B row data (second line)
+        radius_mean: 13.54,
+        texture_mean: 14.36,
+        perimeter_mean: 87.46,
+        area_mean: 566.3,
+        smoothness_mean: 0.09779,
+        compactness_mean: 0.08129,
+        concavity_mean: 0.06664,
+        concave_points_mean: 0.04781,
+        symmetry_mean: 0.1885,
+        fractal_dimension_mean: 0.05766,
+        radius_se: 0.2699,
+        texture_se: 0.7886,
+        perimeter_se: 2.058,
+        area_se: 23.56,
+        smoothness_se: 0.008462,
+        compactness_se: 0.0146,
+        concavity_se: 0.02387,
+        concave_points_se: 0.01315,
+        symmetry_se: 0.0198,
+        fractal_dimension_se: 0.0023,
+        radius_worst: 15.11,
+        texture_worst: 19.26,
+        perimeter_worst: 99.7,
+        area_worst: 711.2,
+        smoothness_worst: 0.144,
+        compactness_worst: 0.1773,
+        concavity_worst: 0.239,
+        concave_points_worst: 0.1288,
+        symmetry_worst: 0.2977,
+        fractal_dimension_worst: 0.07259
+    }
+};
+
+function loadSampleData(caseType) {
+    const data = sampleCases[caseType];
+    for (const [key, value] of Object.entries(data)) {
+        const input = document.getElementById(key);
+        if (input) input.value = value;
+    }
+}
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('tumorForm');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        
+        document.getElementById('resultsPlaceholder').classList.add('d-none');
+        document.getElementById('resultsContent').classList.add('d-none');
+        document.getElementById('errorMessage').classList.add('d-none');
+        document.getElementById('loadingSpinner').classList.remove('d-none');
+        analyzeBtn.disabled = true;
+        
+        try {
+            const response = await fetch('/api/predict-tumor', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            document.getElementById('loadingSpinner').classList.add('d-none');
+            
+            if (result.success) {
+                displayResults(result);
+            } else {
+                showError(result.error);
+            }
+        } catch (error) {
+            document.getElementById('loadingSpinner').classList.add('d-none');
+            showError('An error occurred while analyzing the data.');
+        }
+        
+        analyzeBtn.disabled = false;
+    });
+    
+    function displayResults(data) {
+        const resultsContent = document.getElementById('resultsContent');
+        const resultBadge = document.getElementById('resultBadge');
+        const confidenceBar = document.getElementById('confidenceBar');
+        const confidenceText = document.getElementById('confidenceText');
+        
+        resultBadge.textContent = data.result;
+        resultBadge.className = 'badge fs-4 px-4 py-2 ' + (data.result === 'Malignant' ? 'bg-danger' : 'bg-success');
+        
+        confidenceBar.style.width = data.confidence + '%';
+        confidenceBar.textContent = data.confidence + '%';
+        confidenceBar.className = 'progress-bar ' + (data.result === 'Malignant' ? 'bg-danger' : 'bg-success');
+        confidenceText.textContent = 'Model confidence: ' + data.confidence + '%';
+        
+        document.getElementById('benignProb').textContent = data.benign_probability + '%';
+        document.getElementById('malignantProb').textContent = data.malignant_probability + '%';
+        
+        resultsContent.classList.remove('d-none');
+    }
+    
+    function showError(message) {
+        const errorDiv = document.getElementById('errorMessage');
+        errorDiv.textContent = message;
+        errorDiv.classList.remove('d-none');
+    }
+});
+</script>
+{% endblock %}

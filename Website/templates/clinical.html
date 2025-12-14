@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Clinical Data Analysis - Breast Cancer Diagnostic Portal{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item active">Clinical Data Analysis</li>
+            </ol>
+        </nav>
+        <h2 class="mb-0"><i class="bi bi-clipboard2-pulse text-success me-2"></i>Clinical Data Analysis</h2>
+        <p class="text-muted">Enter patient biomarker data for breast cancer risk assessment</p>
+    </div>
+</div>
+
+{% if not model_loaded %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    <strong>Model Not Loaded:</strong> Please <a href="{{ url_for('upload_models_page') }}">upload the clinical data model</a> before running analysis.
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-lg-7">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Patient Biomarkers</h5>
+            </div>
+            <div class="card-body">
+                <form id="clinicalForm">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="age" class="form-label">Age (years)</label>
+                            <input type="number" class="form-control" id="age" name="age" step="1" min="0" max="120" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="bmi" class="form-label">BMI (kg/m²)</label>
+                            <input type="number" class="form-control" id="bmi" name="bmi" step="0.00000001" min="10" max="60" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="glucose" class="form-label">Glucose (mg/dL)</label>
+                            <input type="number" class="form-control" id="glucose" name="glucose" step="0.00000001" min="0" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="insulin" class="form-label">Insulin (µU/mL)</label>
+                            <input type="number" class="form-control" id="insulin" name="insulin" step="0.00000001" min="0" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="homa" class="form-label">HOMA</label>
+                            <input type="number" class="form-control" id="homa" name="homa" step="0.00000001" min="0" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="leptin" class="form-label">Leptin (ng/mL)</label>
+                            <input type="number" class="form-control" id="leptin" name="leptin" step="0.00000001" min="0" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="adiponectin" class="form-label">Adiponectin (µg/mL)</label>
+                            <input type="number" class="form-control" id="adiponectin" name="adiponectin" step="0.00000001" min="0" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="resistin" class="form-label">Resistin (ng/mL)</label>
+                            <input type="number" class="form-control" id="resistin" name="resistin" step="0.00000001" min="0" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="mcp1" class="form-label">MCP.1 (pg/dL)</label>
+                            <input type="number" class="form-control" id="mcp1" name="mcp1" step="0.00000001" min="0" required>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-success" id="analyzeBtn">
+                            <i class="bi bi-cpu me-1"></i>Analyze Data
+                        </button>
+                        <button type="reset" class="btn btn-outline-secondary ms-2">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Form
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-clipboard-data me-2"></i>Analysis Results</h5>
+            </div>
+            <div class="card-body">
+                <div id="resultsPlaceholder" class="text-center py-5 text-muted">
+                    <i class="bi bi-hourglass display-4"></i>
+                    <p class="mt-2">Enter patient data to see analysis results</p>
+                </div>
+                <div id="resultsContent" class="d-none">
+                    <div class="result-badge text-center mb-4">
+                        <span id="resultBadge" class="badge fs-4 px-4 py-2"></span>
+                    </div>
+                    <div class="confidence-section mb-4">
+                        <h6>Confidence Level</h6>
+                        <div class="progress" style="height: 25px;">
+                            <div id="confidenceBar" class="progress-bar" role="progressbar"></div>
+                        </div>
+                        <small class="text-muted" id="confidenceText"></small>
+                    </div>
+                    <div class="probabilities">
+                        <h6>Probability Distribution</h6>
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="p-3 bg-success-subtle rounded text-center">
+                                    <h4 id="benignProb" class="text-success mb-0"></h4>
+                                    <small class="text-muted">Benign</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 bg-danger-subtle rounded text-center">
+                                    <h4 id="malignantProb" class="text-danger mb-0"></h4>
+                                    <small class="text-muted">Malignant</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="loadingSpinner" class="text-center py-5 d-none">
+                    <div class="spinner-border text-success" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Analyzing data...</p>
+                </div>
+                <div id="errorMessage" class="alert alert-danger d-none"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('clinicalForm');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        
+        document.getElementById('resultsPlaceholder').classList.add('d-none');
+        document.getElementById('resultsContent').classList.add('d-none');
+        document.getElementById('errorMessage').classList.add('d-none');
+        document.getElementById('loadingSpinner').classList.remove('d-none');
+        analyzeBtn.disabled = true;
+        
+        try {
+            const response = await fetch('/api/predict-clinical', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            document.getElementById('loadingSpinner').classList.add('d-none');
+            
+            if (result.success) {
+                displayResults(result);
+            } else {
+                showError(result.error);
+            }
+        } catch (error) {
+            document.getElementById('loadingSpinner').classList.add('d-none');
+            showError('An error occurred while analyzing the data.');
+        }
+        
+        analyzeBtn.disabled = false;
+    });
+    
+    function displayResults(data) {
+        const resultsContent = document.getElementById('resultsContent');
+        const resultBadge = document.getElementById('resultBadge');
+        const confidenceBar = document.getElementById('confidenceBar');
+        const confidenceText = document.getElementById('confidenceText');
+        
+        resultBadge.textContent = data.result;
+        resultBadge.className = 'badge fs-4 px-4 py-2 ' + (data.result === 'Malignant' ? 'bg-danger' : 'bg-success');
+        
+        confidenceBar.style.width = data.confidence + '%';
+        confidenceBar.textContent = data.confidence + '%';
+        confidenceBar.className = 'progress-bar ' + (data.result === 'Malignant' ? 'bg-danger' : 'bg-success');
+        confidenceText.textContent = 'Model confidence: ' + data.confidence + '%';
+        
+        document.getElementById('benignProb').textContent = data.benign_probability + '%';
+        document.getElementById('malignantProb').textContent = data.malignant_probability + '%';
+        
+        resultsContent.classList.remove('d-none');
+    }
+    
+    function showError(message) {
+        const errorDiv = document.getElementById('errorMessage');
+        errorDiv.textContent = message;
+        errorDiv.classList.remove('d-none');
+    }
+});
+</script>
+{% endblock %}

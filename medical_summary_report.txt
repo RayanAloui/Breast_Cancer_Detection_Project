@@ -1,0 +1,12 @@
+======================================================================
+MEDICAL SUMMARY - BREAST CANCER DETECTION
+======================================================================
+
+Recommended model: Softmax Regression
+Sensitivity: 96.88%
+False Negatives: 3.12%
+Accuracy: 98.83%
+
+MODEL RANKING:
+5. Softmax Regression | Sens: 96.9% | FNR: 3.1% | Acc: 98.8%
+6. Support Vector Machine | Sens: 95.3% | FNR: 4.7% | Acc: 98.2%

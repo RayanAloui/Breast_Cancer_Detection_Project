@@ -30,7 +30,7 @@
                 <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Tumor Measurements</h5>
             </div>
             <div class="card-body">
-                <form id="tumorForm">
+                <form id="tumorForm" novalidate>
                     <!-- Add above the form -->
 <div class="card bg-light mb-3">
     <div class="card-body">
@@ -40,9 +40,6 @@
         </button>
         <button type="button" class="btn btn-sm btn-outline-danger me-2" onclick="loadSampleData('typical_malignant')">
             <i class="bi bi-plus-circle"></i> Typical Malignant
-        </button>
-        <button type="button" class="btn btn-sm btn-outline-info" onclick="loadSampleData('borderline')">
-            <i class="bi bi-plus-circle"></i> Borderline Case
         </button>
     </div>
 </div>
@@ -257,7 +254,7 @@
 
 {% block scripts %}
 <script>
-    // Sample data for common cases
+// Sample data for common cases
 const sampleCases = {
     typical_malignant: {
         // M row data (first line)
@@ -327,22 +324,92 @@ const sampleCases = {
     }
 };
 
+// Function to load sample data - MUST be defined globally
 function loadSampleData(caseType) {
+    console.log("Loading sample data for:", caseType);
     const data = sampleCases[caseType];
     for (const [key, value] of Object.entries(data)) {
         const input = document.getElementById(key);
-        if (input) input.value = value;
+        if (input) {
+            input.value = value;
+            console.log("Set", key, "to", value);
+        }
     }
 }
+
+// Define displayResults and showError functions BEFORE DOMContentLoaded
+function displayResults(data) {
+    console.log("Displaying results:", data);
+    const resultsContent = document.getElementById('resultsContent');
+    const resultBadge = document.getElementById('resultBadge');
+    const confidenceBar = document.getElementById('confidenceBar');
+    const confidenceText = document.getElementById('confidenceText');
+    const benignProb = document.getElementById('benignProb');
+    const malignantProb = document.getElementById('malignantProb');
+    
+    // Determine if it's malignant
+    const resultStr = String(data.result).toLowerCase().trim();
+    const isMalignant = resultStr === 'malignant' || resultStr === 'm';
+    
+    // Set badge text and color
+    if (isMalignant) {
+        resultBadge.textContent = 'Malignant';
+        resultBadge.className = 'badge fs-4 px-4 py-2 bg-danger';
+        confidenceBar.className = 'progress-bar bg-danger';
+        
+        // For malignant, display malignant probability as higher
+        benignProb.textContent = data.benign_probability + '%';
+        malignantProb.textContent = data.malignant_probability + '%';
+    } else {
+        // For benign
+        resultBadge.textContent = 'Benign';
+        resultBadge.className = 'badge fs-4 px-4 py-2 bg-success';
+        confidenceBar.className = 'progress-bar bg-success';
+        
+        // For benign, display benign probability as higher
+        // Make sure your backend returns the correct probabilities!
+        benignProb.textContent = data.benign_probability + '%';
+        malignantProb.textContent = data.malignant_probability + '%';
+    }
+    
+    confidenceBar.style.width = data.confidence + '%';
+    confidenceBar.textContent = data.confidence + '%';
+    confidenceText.textContent = 'Model confidence: ' + data.confidence + '%';
+    
+    resultsContent.classList.remove('d-none');
+}
+
+function showError(message) {
+    console.error("Showing error:", message);
+    const errorDiv = document.getElementById('errorMessage');
+    errorDiv.textContent = message;
+    errorDiv.classList.remove('d-none');
+}
+
+// Only ONE DOMContentLoaded event listener
 document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM loaded, setting up form");
+    
     const form = document.getElementById('tumorForm');
     const analyzeBtn = document.getElementById('analyzeBtn');
+    
+    if (!form) {
+        console.error("Form not found!");
+        return;
+    }
+    
+    if (!analyzeBtn) {
+        console.error("Analyze button not found!");
+        return;
+    }
     
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
+        
+        console.log("Form data:", data);
         
         document.getElementById('resultsPlaceholder').classList.add('d-none');
         document.getElementById('resultsContent').classList.add('d-none');
@@ -351,13 +418,18 @@ document.addEventListener('DOMContentLoaded', function() {
         analyzeBtn.disabled = true;
         
         try {
+            console.log("Sending request to /api/predict-tumor");
+            
             const response = await fetch('/api/predict-tumor', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
             
+            console.log("Response status:", response.status);
+            
             const result = await response.json();
+            console.log("Response data:", result);
             
             document.getElementById('loadingSpinner').classList.add('d-none');
             
@@ -367,38 +439,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 showError(result.error);
             }
         } catch (error) {
+            console.error("Fetch error:", error);
             document.getElementById('loadingSpinner').classList.add('d-none');
-            showError('An error occurred while analyzing the data.');
+            showError('An error occurred while analyzing the data: ' + error.message);
         }
         
         analyzeBtn.disabled = false;
     });
     
-    function displayResults(data) {
-        const resultsContent = document.getElementById('resultsContent');
-        const resultBadge = document.getElementById('resultBadge');
-        const confidenceBar = document.getElementById('confidenceBar');
-        const confidenceText = document.getElementById('confidenceText');
-        
-        resultBadge.textContent = data.result;
-        resultBadge.className = 'badge fs-4 px-4 py-2 ' + (data.result === 'Malignant' ? 'bg-danger' : 'bg-success');
-        
-        confidenceBar.style.width = data.confidence + '%';
-        confidenceBar.textContent = data.confidence + '%';
-        confidenceBar.className = 'progress-bar ' + (data.result === 'Malignant' ? 'bg-danger' : 'bg-success');
-        confidenceText.textContent = 'Model confidence: ' + data.confidence + '%';
-        
-        document.getElementById('benignProb').textContent = data.benign_probability + '%';
-        document.getElementById('malignantProb').textContent = data.malignant_probability + '%';
-        
-        resultsContent.classList.remove('d-none');
-    }
-    
-    function showError(message) {
-        const errorDiv = document.getElementById('errorMessage');
-        errorDiv.textContent = message;
-        errorDiv.classList.remove('d-none');
-    }
+    console.log("Form event listener added successfully");
 });
 </script>
 {% endblock %}

@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}Histopathology Analysis - Breast Cancer Diagnostic Portal{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item active">Histopathology Analysis</li>
+            </ol>
+        </nav>
+        <h2 class="mb-0"><i class="bi bi-image text-primary me-2"></i>Histopathology Image Analysis</h2>
+        <p class="text-muted">Upload breast mass histopathology images for AI-powered malignancy detection</p>
+    </div>
+</div>
+
+{% if not model_loaded %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    <strong>Model Not Loaded:</strong> Please <a href="{{ url_for('upload_models_page') }}">upload the histopathology model</a> before analyzing images.
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-upload me-2"></i>Upload Image</h5>
+            </div>
+            <div class="card-body">
+                <form id="imageForm" enctype="multipart/form-data">
+                    <div class="upload-zone mb-3" id="dropZone">
+                        <input type="file" class="form-control d-none" id="imageInput" name="image" accept="image/*">
+                        <div class="text-center py-5">
+                            <i class="bi bi-cloud-arrow-up display-4 text-muted"></i>
+                            <p class="mb-0 mt-2">Drag and drop an image here, or click to browse</p>
+                            <small class="text-muted">Supports: PNG, JPG, JPEG, GIF, BMP</small>
+                        </div>
+                    </div>
+                    <div id="imagePreview" class="mb-3 d-none">
+                        <img id="previewImg" class="img-fluid rounded" alt="Preview">
+                        <button type="button" class="btn btn-sm btn-outline-danger mt-2" id="clearImage">
+                            <i class="bi bi-x-circle me-1"></i>Clear
+                        </button>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100" id="analyzeBtn" disabled>
+                        <i class="bi bi-cpu me-1"></i>Analyze Image
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-clipboard-data me-2"></i>Analysis Results</h5>
+            </div>
+            <div class="card-body">
+                <div id="resultsPlaceholder" class="text-center py-5 text-muted">
+                    <i class="bi bi-hourglass display-4"></i>
+                    <p class="mt-2">Upload an image to see analysis results</p>
+                </div>
+                <div id="resultsContent" class="d-none">
+                    <div class="result-badge text-center mb-4">
+                        <span id="resultBadge" class="badge fs-4 px-4 py-2"></span>
+                    </div>
+                    <div class="confidence-section mb-4">
+                        <h6>Confidence Level</h6>
+                        <div class="progress" style="height: 25px;">
+                            <div id="confidenceBar" class="progress-bar" role="progressbar"></div>
+                        </div>
+                        <small class="text-muted" id="confidenceText"></small>
+                    </div>
+                    <div class="probabilities">
+                        <h6>Probability Distribution</h6>
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="p-3 bg-success-subtle rounded text-center">
+                                    <h4 id="benignProb" class="text-success mb-0"></h4>
+                                    <small class="text-muted">Benign</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 bg-danger-subtle rounded text-center">
+                                    <h4 id="malignantProb" class="text-danger mb-0"></h4>
+                                    <small class="text-muted">Malignant</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="loadingSpinner" class="text-center py-5 d-none">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Analyzing image...</p>
+                </div>
+                <div id="errorMessage" class="alert alert-danger d-none"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dropZone = document.getElementById('dropZone');
+    const imageInput = document.getElementById('imageInput');
+    const imagePreview = document.getElementById('imagePreview');
+    const previewImg = document.getElementById('previewImg');
+    const clearBtn = document.getElementById('clearImage');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const form = document.getElementById('imageForm');
+
+    dropZone.addEventListener('click', () => imageInput.click());
+    
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+    
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('dragover');
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) {
+            imageInput.files = e.dataTransfer.files;
+            handleImageSelect();
+        }
+    });
+    
+    imageInput.addEventListener('change', handleImageSelect);
+    
+    function handleImageSelect() {
+        const file = imageInput.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImg.src = e.target.result;
+                imagePreview.classList.remove('d-none');
+                dropZone.classList.add('d-none');
+                analyzeBtn.disabled = false;
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+    
+    clearBtn.addEventListener('click', () => {
+        imageInput.value = '';
+        imagePreview.classList.add('d-none');
+        dropZone.classList.remove('d-none');
+        analyzeBtn.disabled = true;
+        document.getElementById('resultsContent').classList.add('d-none');
+        document.getElementById('resultsPlaceholder').classList.remove('d-none');
+    });
+    
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData();
+        formData.append('image', imageInput.files[0]);
+        
+        document.getElementById('resultsPlaceholder').classList.add('d-none');
+        document.getElementById('resultsContent').classList.add('d-none');
+        document.getElementById('errorMessage').classList.add('d-none');
+        document.getElementById('loadingSpinner').classList.remove('d-none');
+        analyzeBtn.disabled = true;
+        
+        try {
+            const response = await fetch('/api/predict-image', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            document.getElementById('loadingSpinner').classList.add('d-none');
+            
+            if (data.success) {
+                displayResults(data);
+            } else {
+                showError(data.error);
+            }
+        } catch (error) {
+            document.getElementById('loadingSpinner').classList.add('d-none');
+            showError('An error occurred while analyzing the image.');
+        }
+        
+        analyzeBtn.disabled = false;
+    });
+    
+    function displayResults(data) {
+        const resultsContent = document.getElementById('resultsContent');
+        const resultBadge = document.getElementById('resultBadge');
+        const confidenceBar = document.getElementById('confidenceBar');
+        const confidenceText = document.getElementById('confidenceText');
+        
+        resultBadge.textContent = data.result;
+        resultBadge.className = 'badge fs-4 px-4 py-2 ' + (data.result === 'Malignant' ? 'bg-danger' : 'bg-success');
+        
+        confidenceBar.style.width = data.confidence + '%';
+        confidenceBar.textContent = data.confidence + '%';
+        confidenceBar.className = 'progress-bar ' + (data.result === 'Malignant' ? 'bg-danger' : 'bg-success');
+        confidenceText.textContent = 'Model confidence: ' + data.confidence + '%';
+        
+        document.getElementById('benignProb').textContent = data.benign_probability + '%';
+        document.getElementById('malignantProb').textContent = data.malignant_probability + '%';
+        
+        resultsContent.classList.remove('d-none');
+    }
+    
+    function showError(message) {
+        const errorDiv = document.getElementById('errorMessage');
+        errorDiv.textContent = message;
+        errorDiv.classList.remove('d-none');
+    }
+});
+</script>
+{% endblock %}

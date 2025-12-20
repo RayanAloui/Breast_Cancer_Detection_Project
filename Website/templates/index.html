@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Breast Cancer Diagnostic Portal{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="hero-section text-center py-5">
+            <i class="bi bi-heart-pulse-fill display-1 text-primary mb-3"></i>
+            <h1 class="display-5 fw-bold text-primary">Breast Cancer Diagnostic Portal</h1>
+            <p class="lead text-muted">Advanced AI-powered diagnostic tools for medical professionals</p>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-cpu me-2"></i>Model Status</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="status-indicator d-flex align-items-center p-3 rounded {% if models_status.image %}bg-success-subtle{% else %}bg-warning-subtle{% endif %}">
+                            <i class="bi bi-image fs-3 me-3 {% if models_status.image %}text-success{% else %}text-warning{% endif %}"></i>
+                            <div>
+                                <h6 class="mb-0">Histopathology Model</h6>
+                                <small class="{% if models_status.image %}text-success{% else %}text-warning{% endif %}">
+                                    {% if models_status.image %}Ready{% else %}Not Loaded{% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="status-indicator d-flex align-items-center p-3 rounded {% if models_status.clinical %}bg-success-subtle{% else %}bg-warning-subtle{% endif %}">
+                            <i class="bi bi-clipboard2-pulse fs-3 me-3 {% if models_status.clinical %}text-success{% else %}text-warning{% endif %}"></i>
+                            <div>
+                                <h6 class="mb-0">Clinical Data Model</h6>
+                                <small class="{% if models_status.clinical %}text-success{% else %}text-warning{% endif %}">
+                                    {% if models_status.clinical %}Ready{% else %}Not Loaded{% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="status-indicator d-flex align-items-center p-3 rounded {% if models_status.tumor %}bg-success-subtle{% else %}bg-warning-subtle{% endif %}">
+                            <i class="bi bi-graph-up fs-3 me-3 {% if models_status.tumor %}text-success{% else %}text-warning{% endif %}"></i>
+                            <div>
+                                <h6 class="mb-0">Tumor Features Model</h6>
+                                <small class="{% if models_status.tumor %}text-success{% else %}text-warning{% endif %}">
+                                    {% if models_status.tumor %}Ready{% else %}Not Loaded{% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% if not models_status.image or not models_status.clinical or not models_status.tumor %}
+                <div class="mt-3 text-center">
+                    <a href="{{ url_for('upload_models_page') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-cloud-upload me-1"></i>Upload Missing Models
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm diagnostic-card">
+            <div class="card-body text-center">
+                <div class="icon-wrapper bg-primary-subtle rounded-circle mx-auto mb-3">
+                    <i class="bi bi-image text-primary"></i>
+                </div>
+                <h5 class="card-title">Histopathology Analysis</h5>
+                <p class="card-text text-muted">Upload breast mass histopathology images for AI-powered malignancy detection.</p>
+                <a href="{{ url_for('histopathology') }}" class="btn btn-primary">
+                    <i class="bi bi-arrow-right me-1"></i>Start Analysis
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm diagnostic-card">
+            <div class="card-body text-center">
+                <div class="icon-wrapper bg-success-subtle rounded-circle mx-auto mb-3">
+                    <i class="bi bi-clipboard2-pulse text-success"></i>
+                </div>
+                <h5 class="card-title">Clinical Data Analysis</h5>
+                <p class="card-text text-muted">Enter patient biomarker data (Age, BMI, Glucose, Insulin, etc.) for risk assessment.</p>
+                <a href="{{ url_for('clinical') }}" class="btn btn-success">
+                    <i class="bi bi-arrow-right me-1"></i>Enter Data
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm diagnostic-card">
+            <div class="card-body text-center">
+                <div class="icon-wrapper bg-info-subtle rounded-circle mx-auto mb-3">
+                    <i class="bi bi-graph-up text-info"></i>
+                </div>
+                <h5 class="card-title">Tumor Feature Analysis</h5>
+                <p class="card-text text-muted">Input tumor measurements (radius, texture, perimeter, etc.) for comprehensive diagnosis.</p>
+                <a href="{{ url_for('tumor') }}" class="btn btn-info text-white">
+                    <i class="bi bi-arrow-right me-1"></i>Enter Features
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card shadow-sm border-warning">
+            <div class="card-body">
+                <h6 class="text-warning"><i class="bi bi-exclamation-triangle me-2"></i>Important Notice</h6>
+                <p class="mb-0 text-muted small">This diagnostic tool is intended to assist medical professionals and should not replace clinical judgment. All predictions should be verified through standard medical procedures. Results are for screening purposes only.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

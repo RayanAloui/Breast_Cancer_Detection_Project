@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Models - Breast Cancer Diagnostic Portal{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item active">Upload Models</li>
+            </ol>
+        </nav>
+        <h2 class="mb-0"><i class="bi bi-cloud-upload text-primary me-2"></i>Upload ML Models</h2>
+        <p class="text-muted">Upload your trained machine learning models for breast cancer diagnosis</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-image text-primary me-2"></i>Histopathology Model
+                    {% if models_status.image %}
+                    <span class="badge bg-success float-end">Loaded</span>
+                    {% else %}
+                    <span class="badge bg-warning float-end">Not Loaded</span>
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">Upload your Keras (.h5) model trained on breast mass histopathology images.</p>
+                <form id="imageModelForm" enctype="multipart/form-data">
+                    <input type="hidden" name="model_type" value="image">
+                    <div class="mb-3">
+                        <input type="file" class="form-control" name="model" accept=".h5,.keras" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-upload me-1"></i>Upload Model
+                    </button>
+                </form>
+                <div class="upload-status mt-2"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-clipboard2-pulse text-success me-2"></i>Clinical Data Model
+                    {% if models_status.clinical %}
+                    <span class="badge bg-success float-end">Loaded</span>
+                    {% else %}
+                    <span class="badge bg-warning float-end">Not Loaded</span>
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">Upload your joblib (.pkl) model trained on clinical biomarker data (Age, BMI, Glucose, etc.).</p>
+                <form id="clinicalModelForm" enctype="multipart/form-data">
+                    <input type="hidden" name="model_type" value="clinical">
+                    <div class="mb-3">
+                        <input type="file" class="form-control" name="model" accept=".pkl,.joblib" required>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-upload me-1"></i>Upload Model
+                    </button>
+                </form>
+                <div class="upload-status mt-2"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-graph-up text-info me-2"></i>Tumor Features Model
+                    {% if models_status.tumor %}
+                    <span class="badge bg-success float-end">Loaded</span>
+                    {% else %}
+                    <span class="badge bg-warning float-end">Not Loaded</span>
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">Upload your joblib (.pkl) model trained on tumor measurement features (radius, texture, etc.).</p>
+                <form id="tumorModelForm" enctype="multipart/form-data">
+                    <input type="hidden" name="model_type" value="tumor">
+                    <div class="mb-3">
+                        <input type="file" class="form-control" name="model" accept=".pkl,.joblib" required>
+                    </div>
+                    <button type="submit" class="btn btn-info text-white w-100">
+                        <i class="bi bi-upload me-1"></i>Upload Model
+                    </button>
+                </form>
+                <div class="upload-status mt-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow-sm border-info">
+            <div class="card-body">
+                <h6 class="text-info"><i class="bi bi-info-circle me-2"></i>Model Requirements</h6>
+                <ul class="mb-0 text-muted small">
+                    <li><strong>Histopathology Model:</strong> Keras/TensorFlow model (.h5 or .keras) expecting 224x224 RGB images. Output should be classification probabilities.</li>
+                    <li><strong>Clinical Data Model:</strong> Scikit-learn model (.pkl) trained on 9 features: Age, BMI, Glucose, Insulin, HOMA, Leptin, Adiponectin, Resistin, MCP.1</li>
+                    <li><strong>Tumor Features Model:</strong> Scikit-learn model (.pkl) trained on 30 features from the Wisconsin Breast Cancer dataset (mean, SE, and worst values)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const forms = ['imageModelForm', 'clinicalModelForm', 'tumorModelForm'];
+    
+    forms.forEach(formId => {
+        const form = document.getElementById(formId);
+        const statusDiv = form.parentElement.querySelector('.upload-status');
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            const submitBtn = form.querySelector('button[type="submit"]');
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Uploading...';
+            statusDiv.innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/upload-model', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    statusDiv.innerHTML = '<div class="alert alert-success py-2 small mb-0"><i class="bi bi-check-circle me-1"></i>' + result.message + '</div>';
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    statusDiv.innerHTML = '<div class="alert alert-danger py-2 small mb-0"><i class="bi bi-x-circle me-1"></i>' + result.error + '</div>';
+                }
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="alert alert-danger py-2 small mb-0"><i class="bi bi-x-circle me-1"></i>Upload failed. Please try again.</div>';
+            }
+            
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-upload me-1"></i>Upload Model';
+        });
+    });
+});
+</script>
+{% endblock %}
